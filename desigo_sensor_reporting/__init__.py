@@ -103,8 +103,6 @@ def get_site_sample(df: pd.DataFrame, system_type: str, site_name: str, report_t
 
     return site_sample
                 
-
-
 with st.sidebar:
     section = option_menu("Main Menu", ["Site Report", "Upload Reports", "Failed Points", "Alarms", "Overrides"],)
 
@@ -147,12 +145,15 @@ if section == "Upload Reports":
 
 def get_site_data(site_name: str, report_type:str):
     site_sample_records = db.collection("site-samples").where("site_name", "==", site_name).where("report_type", "==", report_type).select(('report_type', 'panel_counts', 'total_count', 'timestamp', 'total_panels', 'sensor_type')).get()
-    site_samples = pd.DataFrame([x.to_dict() for x in site_sample_records])
-    site_samples = site_samples.drop_duplicates(subset=["timestamp", "report_type", "sensor_type"], keep="last")
-    site_samples["timestamp"] = pd.to_datetime(site_samples["timestamp"])
-    site_samples.set_index("timestamp", inplace=True)
-    site_samples.sort_index(inplace=True)
-    return site_samples
+    if site_sample_records:
+        site_samples = pd.DataFrame([x.to_dict() for x in site_sample_records])
+        site_samples = site_samples.drop_duplicates(subset=["timestamp", "report_type", "sensor_type"], keep="last")
+        site_samples["timestamp"] = pd.to_datetime(site_samples["timestamp"])
+        site_samples.set_index("timestamp", inplace=True)
+        site_samples.sort_index(inplace=True)
+        return site_samples
+    else:
+        return pd.DataFrame()
 
 def get_vis_data_by_panel(df: pd.DataFrame) -> pd.DataFrame:
     panel_vis_data = pd.DataFrame(df["panel_counts"].values.tolist())
@@ -220,34 +221,40 @@ if section == "Failed Points":
     site_name = st.selectbox("Site Name", [record.to_dict()['name'] for record in db.collection("sites").get()])
     if site_name:
         site_samples = get_site_data(site_name, "failed")
-        st.dataframe(site_samples[['total_count', 'total_panels', 'sensor_type']], use_container_width=True)
-        plot_df = get_site_plot_df(site_samples, {"total_count": "Total Failed Points", "total_panels": "Panels with Failed Points"})
-        st.dataframe(plot_df, use_container_width=True)
-        draw_site_plot(plot_df)
-        panel_df = get_vis_data_by_panel(site_samples)
-        draw_panel_vis(panel_df)
+        if not site_samples.empty:
+            st.dataframe(site_samples[['total_count', 'total_panels', 'sensor_type']], use_container_width=True)
+            plot_df = get_site_plot_df(site_samples, {"total_count": "Total Failed Points", "total_panels": "Panels with Failed Points"})
+            st.dataframe(plot_df, use_container_width=True)
+            draw_site_plot(plot_df)
+            panel_df = get_vis_data_by_panel(site_samples)
+            draw_panel_vis(panel_df)
+        else:
+            st.write("No failed points found for site")
 
 if section == "Alarms":
     site_name = st.selectbox("Site Name", [record.to_dict()['name'] for record in db.collection("sites").get()])
     if site_name:
         site_samples = get_site_data(site_name, "alarm")
-        st.dataframe(site_samples[['total_count', 'total_panels', 'sensor_type']], use_container_width=True)
-        plot_df = get_site_plot_df(site_samples, {"total_count": "Total Alarms", "total_panels": "Panels with Alarms"})
-        st.dataframe(plot_df, use_container_width=True)
-        draw_site_plot(plot_df)
-        panel_df = get_vis_data_by_panel(site_samples)
-        draw_panel_vis(panel_df)
+        if not site_samples.empty:
+            st.dataframe(site_samples[['total_count', 'total_panels', 'sensor_type']], use_container_width=True)
+            plot_df = get_site_plot_df(site_samples, {"total_count": "Total Alarms", "total_panels": "Panels with Alarms"})
+            st.dataframe(plot_df, use_container_width=True)
+            draw_site_plot(plot_df)
+            panel_df = get_vis_data_by_panel(site_samples)
+            draw_panel_vis(panel_df)
+        else:
+            st.write("No alarm points found for site")
 
 if section == "Overrides":
     site_name = st.selectbox("Site Name", [record.to_dict()['name'] for record in db.collection("sites").get()])
     if site_name:
         site_samples = get_site_data(site_name, "operator")
-        st.dataframe(site_samples[['total_count', 'total_panels', 'sensor_type']], use_container_width=True)
-        plot_df = get_site_plot_df(site_samples, {"total_count": "Total Points in Operator", "total_panels": "Panels with Operator Points"})
-        st.dataframe(plot_df, use_container_width=True)
-        draw_site_plot(plot_df)
-        panel_df = get_vis_data_by_panel(site_samples)
-        draw_panel_vis(panel_df)
-        
-
-
+        if not site_samples.empty:
+            st.dataframe(site_samples[['total_count', 'total_panels', 'sensor_type']], use_container_width=True)
+            plot_df = get_site_plot_df(site_samples, {"total_count": "Total Points in Operator", "total_panels": "Panels with Operator Points"})
+            st.dataframe(plot_df, use_container_width=True)
+            draw_site_plot(plot_df)
+            panel_df = get_vis_data_by_panel(site_samples)
+            draw_panel_vis(panel_df)
+        else:
+            st.write("No overrides points found for site")
