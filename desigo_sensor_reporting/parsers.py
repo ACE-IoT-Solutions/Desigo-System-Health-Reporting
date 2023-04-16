@@ -1,3 +1,4 @@
+from typing import Union
 from datetime import datetime
 import pandas as pd
 
@@ -27,6 +28,26 @@ def get_panel_name_from_point_name(point_name: str) -> str:
     elif i := index_or_none(token_list, "Servers"):
         return f"{token_list[-2]}-{token_list[-1]}"
     return "N/A Panel"
+
+def get_system_type_from_file_name(file_name: str) -> Union[str, None]:
+    name_lower = file_name.lower()
+    if "apogee" in name_lower:
+        return "apogee"
+    elif "bacnet" in name_lower:
+        return "bacnet"
+    else:
+        return None
+
+def get_report_type_from_file_name(file_name: str) -> Union[str, None]:
+    name_lower = file_name.lower()
+    if "failed" in name_lower:
+        return "failed"
+    elif "operator" in name_lower:
+        return "operator"
+    elif "alarm" in name_lower:
+        return "alarm"
+    else:
+        return None
 
 
 def create_point_decoder(system_type: str, site: str, timestamp: str):
@@ -106,6 +127,6 @@ def get_site_sample(
             site_sample["points"] = site_sample.get("points", []) + [
                 point_converter(point)
             ]
-    site_sample["total_panels"] = len(site_sample["panel_counts"])
+    site_sample["total_panels"] = len(site_sample.get("panel_counts", ()))
 
     return site_sample

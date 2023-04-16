@@ -16,17 +16,19 @@ def get_db(key_dict):
     return db
 
 
-def get_site_data(db, site_name: str, report_type: str = None, fields: tuple = None):
+@st.cache_data
+def get_site_data(_db, site_name: str, report_type: str = None, fields: tuple = None):
     if fields is None:
-        fields = (
+        fields=(
             "report_type",
             "panel_counts",
             "total_count",
             "timestamp",
             "total_panels",
             "sensor_type",
+            "points"
         )
-    query = db.collection("site-samples").where(
+    query = _db.collection("site-samples").where(
         field_path="site_name", op_string="==", value=site_name
     )
     if report_type is not None:
@@ -38,7 +40,7 @@ def get_site_data(db, site_name: str, report_type: str = None, fields: tuple = N
             subset=["timestamp", "report_type", "sensor_type"], keep="last"
         )
         site_samples["timestamp"] = pd.to_datetime(site_samples["timestamp"])
-        site_samples.set_index("timestamp", inplace=True)
+        site_samples.index = site_samples["timestamp"]
         site_samples.sort_index(inplace=True)
         return site_samples
     else:
