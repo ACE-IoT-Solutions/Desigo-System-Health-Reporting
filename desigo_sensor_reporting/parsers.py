@@ -29,7 +29,7 @@ def get_panel_name_from_point_name(point_name: str) -> str:
         return f"{token_list[-2]}-{token_list[-1]}"
     return "N/A Panel"
 
-def get_system_type_from_file_name(file_name: str) -> Union[str, None]:
+def get_system_type_from_file_name(file_name: str):
     name_lower = file_name.lower()
     if "apogee" in name_lower:
         return "apogee"
@@ -38,7 +38,7 @@ def get_system_type_from_file_name(file_name: str) -> Union[str, None]:
     else:
         return None
 
-def get_report_type_from_file_name(file_name: str) -> Union[str, None]:
+def get_report_type_from_file_name(file_name: str):
     name_lower = file_name.lower()
     if "failed" in name_lower:
         return "failed"
