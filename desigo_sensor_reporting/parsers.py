@@ -1,4 +1,3 @@
-from typing import Union
 from datetime import datetime
 import pandas as pd
 
