@@ -4,7 +4,7 @@ from datetime import datetime
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-from components import option_menu, plot_metric, plot_site_overview, report_type_page
+from components import option_menu, plot_metric, plot_site_overview, report_type_page, draw_panel_vis, draw_site_plot, get_site_plot_df, get_vis_data_by_panel
 from firestore import get_db, get_site_data
 from parsers import (
     get_report_type_from_file_name,
@@ -114,17 +114,17 @@ if section == "Site Report":
             if alarm_samples.shape[0] > 1:
                 with col1:
                     plot_metric(
-                        "Alarms Month over Month", alarm_samples["Total Alarms"]
+                        "Alarms", alarm_samples["Total Alarms"]
                     )
             if operator_samples.shape[0] > 1:
                 with col2:
                     plot_metric(
-                        "Operator Month over Month", operator_samples["Total Operator"]
+                        "Operator", operator_samples["Total Operator"]
                     )
             if failed_samples.shape[0] > 1:
                 with col3:
                     plot_metric(
-                        "Failed Month over Month", failed_samples["Total Failed"]
+                        "Failed", failed_samples["Total Failed"]
                     )
 
 if section == "Failed Points":

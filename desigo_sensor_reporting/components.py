@@ -1,4 +1,6 @@
 import json
+from datetime import datetime
+import pytz
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -13,8 +15,6 @@ db = get_db(key_dict)
 def get_vis_data_by_panel(df: pd.DataFrame) -> pd.DataFrame:
     panel_vis_data = pd.DataFrame(df["panel_counts"].values.tolist())
     panel_vis_data.index = df.index
-    # panel_vis_data = pd.concat((df.index, panel_df), axis=1, join="inner")
-    # panel_vis_data = panel_vis_data.set_index("timestamp").sort_index().groupby("timestamp").sum()
     panel_vis_data = panel_vis_data.sort_index().groupby("timestamp").sum()
     return panel_vis_data
 
@@ -75,16 +75,33 @@ def plot_site_overview(site_samples_pivot: pd.DataFrame) -> go.Figure:
 
 
 def plot_metric(label, column):
+
     metric_this_month = int(column.iloc[-1])
     metric_last_month = int(column.iloc[-2])
-    return st.metric(
-        label=label,
+    metric_avg = int(column.mean())
+    metric_avg_last_month = int(column.iloc[:-2].mean())
+    metric_avg_delta = int(column.diff().mean())
+    st.metric(
+        label=f"{label} Month over Month",
         value=metric_this_month,
         delta=metric_this_month - metric_last_month,
         delta_color="inverse",
     )
+    st.metric(
+        label=f"{label} Average",
+        value=metric_avg,
+        delta=metric_avg - metric_avg_last_month,
+        delta_color="inverse",
+    )
+    st.metric(
+        label=f"{label} Average Delta",
+        value=metric_avg_delta,
+        delta_color="inverse",
+    )
+
 
 def report_type_page(report_type, section_label):
+    st.header(f"{section_label} Report")
     site_name = st.selectbox(
         "Site Name",
         [record.to_dict()["name"] for record in db.collection("sites").get()],
@@ -94,7 +111,13 @@ def report_type_page(report_type, section_label):
         section_samples = site_samples[site_samples["report_type"] == report_type]
         if not section_samples.empty:
             st.dataframe(
-                section_samples[["total_count", "total_panels", "sensor_type"]],
+                section_samples[["total_count", "total_panels", "sensor_type"]].rename(
+                    columns={
+                        "total_count": f"Total {section_label}",
+                        "total_panels": f"Panels with {section_label}",
+                        "sensor_type": "Sensor Type",
+                    }
+                ),
                 use_container_width=True,
             )
             plot_df = get_site_plot_df(
@@ -104,9 +127,33 @@ def report_type_page(report_type, section_label):
                     "total_panels": f"Panels with {section_label}",
                 },
             )
-            st.dataframe(plot_df, use_container_width=True)
             draw_site_plot(plot_df)
             panel_df = get_vis_data_by_panel(section_samples)
-            draw_panel_vis(panel_df)
+            draw_site_plot(panel_df)
+            selected_panel = st.selectbox("select a Panel", panel_df.columns)
+            def create_point_df(df):
+                new_dfs = []
+                for row in df.to_dict(orient="records"):
+                    for point in row["points"]:
+                        new_row = row.copy()
+                        del new_row["points"]
+                        del new_row["panel_counts"]
+
+                        new_row.update({f"point_{point_col}": str(point_val) for point_col, point_val in point.items()})
+                        new_dfs.append(new_row)
+                df = pd.DataFrame(new_dfs, columns=["sensor_type", "timestamp", "point_panel_name", "point_name", "point_value", "point_status"])
+                # df["v"]
+                return df
+            if selected_panel:
+                draw_site_plot(panel_df[[selected_panel]])
+                selected_sample = st.selectbox("select a sample time", panel_df[selected_panel].index)
+                if selected_sample:
+                    point_data = create_point_df(section_samples)
+                    st.dataframe(point_data[(point_data["point_panel_name"] == selected_panel) & (point_data["timestamp"] == selected_sample)])
+ 
+                    # points = section_samples[section_samples["panel_name"] == selected_panel]["points"]
+                    # st.dataframe(
+                    #     points
+                    # )
         else:
             st.write("No failed points found for site")
